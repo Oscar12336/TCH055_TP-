@@ -1,6 +1,10 @@
 package ca.ets.tch055_H23.laboratoire4;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Scanner;
 
@@ -47,9 +51,12 @@ public class Laboratoire4Menu {
     	
     	Connection une_connexion = null ;
 
-    	// Ligne suivante à supprimer après implémentation  
-    	System.out.println("connexionBDD() n'est pas implémentée");  
-    	
+    	try{
+			une_connexion = DriverManager.getConnection(uri,login,password);
+		} catch (SQLException e){
+			e.printStackTrace();
+		}
+
     	return une_connexion  ; 
     }
     
@@ -57,8 +64,41 @@ public class Laboratoire4Menu {
      *  Option 1 - lister les produits 
      */
     public static void listerProduits() {
-    	// Ligne suivante à supprimer après implémentation
-    	System.out.println("Option 1 : listerProduits() n'est pas implémentée");  
+    	String[] colones = new String[]{"Référence", "NOM", "MARQUE", "Prix Unitaire", "Quantité", "Seuil", "Statut", "Code Fournisseur"};
+
+		String separation = "";
+		for(String c: colones){
+			separation += "-----------------";
+		}
+
+
+		try{
+			Statement requete = connexion.createStatement();
+
+			ResultSet result = requete.executeQuery("SELECT * FROM produit ORDER BY ref_produit");
+
+			System.out.println(separation);
+			System.out.println(String.format("%-17s%-17s%-17s%-17s%-17s%-17s%-17s%-17s", colones));
+			System.out.println(separation);
+
+			while(result.next()){
+				System.out.println(String.format("%-17s%-17s%-17s%-17.2f%-17d%-17d%-17s%-17d",
+						result.getString("ref_produit"),
+						result.getString("nom_produit"),
+						result.getString("marque"),
+						result.getDouble("prix_unitaire"),
+						result.getInt("quantite_stock"),
+						result.getInt("quantite_seuil"),
+						result.getString("statut_produit"),
+						result.getInt("code_fournisseur_prioritaire")
+					));
+
+			}
+
+		} catch (SQLException e){
+			e.printStackTrace();
+		}
+		promptEnterKey();
     }
     
     /**
@@ -66,9 +106,69 @@ public class Laboratoire4Menu {
      *   
      */
     public static void ajouterProduit() { 
-    	// Ligne suivante à supprimer après implémentation
-    	System.out.println("Option 2 : ajouterProduit() n'est pas implémentée");
+    	String ref;
+		String nom;
+		String marque;
+		double prix;
+		int qte;
+		int seuil;
+		int fournisseur;
+		String categorie;
+
+		Scanner scan = new Scanner(System.in);
+
+		System.out.println("Référence: ");
+		ref = scan.nextLine();
+		System.out.println("nom: ");
+		nom = scan.nextLine();
+		System.out.println("marque: ");
+		marque = scan.nextLine();
+		System.out.println("prix unitaire: ");
+		prix = scan.nextDouble();
+		System.out.println("quantité en stock: ");
+		qte = scan.nextInt();
+		System.out.println("seuil de quantitée: ");
+		seuil = scan.nextInt();
+		System.out.println("id de fournisseur: ");
+		fournisseur = scan.nextInt();
+		System.out.println("Catégorie: ");
+		categorie = scan.nextLine();
+		categorie = scan.nextLine();
+
+		try{
+			PreparedStatement requete = connexion.prepareStatement("INSERT INTO produit " +
+					"(ref_produit, nom_produit, marque, prix_unitaire, quantite_stock, quantite_seuil, code_fournisseur_prioritaire, nom_categorie) " +
+					"VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+
+			requete.setString(1, ref);
+			requete.setString(2, nom);
+			requete.setString(3, marque);
+			requete.setDouble(4, prix);
+			requete.setInt(5, qte);
+			requete.setInt(6, seuil);
+			requete.setInt(7, fournisseur);
+			requete.setString(8, categorie);
+
+			if(requete.executeUpdate() > 0){
+				System.out.println("Produit ajouté!");
+			} else {
+				System.out.println("Erreur d'insertion de données!");
+			}
+
+
+		} catch (SQLException e){
+			System.out.println("Saisie erroné!");
+
+		}
+
+		promptEnterKey();
     }
+
+    public static void promptEnterKey(){
+		System.out.println("Appuyer sur \"ENTER\" pour continuer...");
+		Scanner scanner = new Scanner(System.in);
+		scanner.nextLine();
+	}
  
     /**
      * Option 3 : Affiche la Commande et ses items 
@@ -77,8 +177,80 @@ public class Laboratoire4Menu {
      * 
      */
     public static void afficherCommande(int numCommande) { 
-    	// Ligne suivante à supprimer après implémentation
-    	System.out.println("Option 3 : afficherCommande() n'est pas implémentée");    	
+    	String nom;
+		String prenom;
+		String telephone;
+		String date;
+		String statut;
+		double prix_total = 0;
+		double sous_tot;
+		int qte_cmd;
+		double prix;
+
+		String[] colones = new String[]{"Ref Produit", "Nom", "Marque", "Prix", "Q.Commandée", "Q.Stock", "T.Partiel"};
+		String separation = "";
+		for(String c: colones){
+			separation += "-------------";
+		}
+
+
+
+
+		try{
+			Statement requete = connexion.createStatement();
+
+			ResultSet result = requete.executeQuery("SELECT " +
+					"C.nom, C.prenom, C.telephone, O.date_commande, O.statut " +
+					"FROM client C JOIN commande O ON O.no_client = C.no_client " +
+					"WHERE O.no_commande = " + numCommande);
+			result.next();
+
+			nom = result.getString("nom");
+			prenom = result.getString("prenom");
+			telephone = result.getString("telephone");
+			date = result.getString("date_commande");
+			statut = result.getString("statut");
+
+
+			result = requete.executeQuery("SELECT P.ref_produit, P.nom_produit, P.marque, P.prix_unitaire, C.quantite_cmd, P.quantite_stock " +
+					"FROM produit P" +
+					" JOIN commande_produit C ON C.no_produit = P.ref_produit" +
+					" WHERE C.no_commande = " + numCommande);
+
+			System.out.println("Client: " + prenom + " " + nom);
+			System.out.println("Téléphone: " + telephone);
+			System.out.println("No Commande: " + numCommande);
+			System.out.println("Date: " + date.split(" ")[0]);
+			System.out.println("Statut: " + statut);
+
+
+			System.out.println(separation);
+			System.out.println(String.format("%-13s%-13s%-13s%-13s%-13s%-13s%-13s", colones));
+			System.out.println(separation);
+
+			while (result.next()){
+				prix = result.getDouble("prix_unitaire");
+				qte_cmd = result.getInt("quantite_cmd");
+				sous_tot = prix * qte_cmd;
+				prix_total += sous_tot;
+
+				System.out.println(String.format("%-13s%-13s%-13s%-13.2f%-13d%-13d%-13.2f",
+						result.getString("ref_produit"),
+						result.getString("nom_produit"),
+						result.getString("marque"),
+						result.getDouble("prix_unitaire"),
+						result.getInt("quantite_cmd"),
+						result.getInt("quantite_stock"),
+						sous_tot
+						));
+
+			}
+			System.out.println(separation);
+			System.out.println("Montant Total: " + prix_total);
+
+		} catch (SQLException e){
+			e.printStackTrace();
+		}	
     }   
 
     /**
@@ -133,8 +305,12 @@ public class Laboratoire4Menu {
     public static boolean fermetureConnexion() {
     	boolean resultat = false ;
     	// Ligne suivante à supprimer après implémentation
-    	System.out.println("Option 0 : fermetureConnexion() n'est pas implémentée");
-    	
+		try {
+			connexion.close();
+			resultat =true;
+		} catch (SQLException e){
+			e.printStackTrace();
+		}
     	return resultat ; 
     }
 
