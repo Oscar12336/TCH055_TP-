@@ -16,9 +16,9 @@ import java.util.Scanner;
  * 
  * @equipe : XX
  * 
- * @author
- * @author
- * @author
+ * @author Borhane Kalla
+ * @author Oscar Roy
+ * @author Melissa Sehad
  * @author
  *
  */
@@ -261,12 +261,36 @@ public class Laboratoire4Menu {
      * 
      */
     public static float calculerPaiements(int numFacture , boolean affichage) {
-    	float resultat = -1 ;     	
-
-    	// Ligne suivante à supprimer après implémentation
-    	System.out.println("Option 4 : calculerPaiements() n'est pas implémentée");
+        double totalFacture = 0;
     	
-    	return resultat ; 
+        try{
+            PreparedStatement existFacture = connection.prepareStatement("SELECT id_Facture FROM Facture WHERE numFacture = ?" );
+            montantFacture.setInt(1, numFacture);
+            ResultSet resultatFacture = existFacture.executeQuery();
+        
+
+            if (!resultatFacture.next()) {
+                if (affichage) {
+                    System.out.println("facture non existante");
+                }
+            return -1;
+            }
+    
+            PreparedStatement Paiements = connection.prepareStatement("SELECT SUM(montant) AS totalFacture FROM Paiement WHERE numFacture = ?");
+            Paiements.setInt(1, numFacture);
+            ResultSet resultatPaiements = Paiements.executeQuery();
+
+            if (resultatPaiements.next()) {
+                totalFActure = resultatPaiements.getDouble("totalFacture");
+            }
+
+            return totalFacture;
+
+        } catch (SQLException e){
+			System.out.println("Saisie erroné!");
+
+		}
+        
     }
 
     /** 
@@ -277,8 +301,62 @@ public class Laboratoire4Menu {
      * 
      */
     public static void enregistrerPaiement(int numFacture) { 
-    	// Ligne suivante à supprimer après implémentation
-    	System.out.println("Option 5 : enregistrerPaiement() n'est pas implémentée");
+    	Scanner scanner = new Scanner(System.in);
+
+        try {
+            PreparedStatement stmtFacture = connection.prepareStatement("SELECT montant FROM Facture WHERE numFacture = ?");
+            existFacture.setInt(1, numFacture);
+            ResultSet resultatFacture = existFacture.executeQuery();
+
+            if (!resultatFacture.next()) {
+                System.out.println("numero de facture non existante");
+                return;
+            }
+       
+            double montantFacture = rsFacture.getDouble("montant");
+
+        
+            System.out.print("Entrez le type de paiement (CASH, CHEQUE, CREDIT) : ");
+            String typePaiement = scanner.nextLine().trim().toUpperCase();
+
+            if (!typePaiement.equals("CASH") && !typePaiement.equals("CHEQUE") && !typePaiement.equals("CREDIT")) {
+                System.out.println("Pas un type accepté");
+                return;
+            }
+
+            System.out.print("Entrez le montant du paiement : ");
+            double montantPaiement = scanner.nextDouble();
+
+            double totalPaiementsExistants = calculerPaiements(numFacture, false);
+
+            if (totalPaiementsExistants == -1) {
+                System.out.println("paiements non-existant");
+                return;
+            }
+
+       
+            if (totalPaiementsExistants + montantPaiement > montantFacture) {
+                System.out.println("montant total est plus grand que le montant de la facture");
+                return;
+            }
+
+        
+            PreparedStatement insertionPaiement = connection.prepareStatement("INSERT INTO Paiement (numFacture, montantPaiement, typePaiement) VALUES (?, ?, ?)");
+            insertionPaiement.setInt(1, numFacture);
+            insertionPaiement.setDouble(2, montantPaiement);
+            insertionPaiement.setString(3, typePaiement);
+
+            int rows = insertionPaiement.executeUpdate();
+
+            if (rows > 0) {
+                System.out.println("Paiement enregistré avec succès");
+            } else {
+             System.out.println("Paiement non enregistré");
+            }
+    } catch (Exception e) {
+        System.out.println("Erreur : " + e.getMessage());
+    }
+}
     }
 
     /**
