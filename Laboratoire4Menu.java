@@ -371,10 +371,39 @@ public class Laboratoire4Menu {
      * @param listEvaluation : tableau d'objet StatisfactionData, contient les données des évaluations 
      * 						   du client à insérer dans la BD
      */
-    public static void enregistreEvaluation(SatisfactionData[] listEvaluation) {
-    	// Ligne suivante à supprimer après implémentation
-    	System.out.println("Option 6 : enregistreEvaluation() n'est pas implémentée");
-    }
+   public static void enregistreEvaluation(SatisfactionData[] listEvaluation) {
+	try {
+		PreparedStatement ps = connexion.prepareStatement(
+            "INSERT INTO Satisfaction (no_client, ref_produit, note, commentaire) VALUES (?, ?, ?, ?)"
+        );
+		
+		 for (SatisfactionData eval : listEvaluation) {
+			ps.setInt(1, eval.no_client);
+            ps.setString(2, eval.ref_produit);
+            ps.setInt(3, eval.note);
+            ps.setString(4, eval.commentaire);
+            ps.addBatch();
+			}
+			
+			int[] resultats = ps.executeBatch();
+			
+			int totalInserts = 0;
+			 for (int res : resultats) {
+				if (res == Statement.SUCCESS_NO_INFO || res > 0) {
+					totalInserts++;
+					 }
+			 }
+			  System.out.println(totalInserts + " évaluations insérées avec succès.");
+			  
+			   } catch (SQLException e) {
+				
+				System.out.println("Erreur lors de l'insertion des évaluations.");
+				e.printStackTrace();
+
+				}
+				promptEnterKey();
+			 
+			 }
 
     /**
      * Question 9 - fermeture de la connexion   
